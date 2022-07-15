@@ -1,4 +1,4 @@
-# robin_hood_hash_map
+# robin-hood-hash-map
 
 A hashmap implementation, using the RobinHood algorithm.\
 https://dspace.mit.edu/bitstream/handle/1721.1/130693/1251799942-MIT.pdf \
