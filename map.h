@@ -4,7 +4,7 @@
 #include "hash.h"
 #include <utility>
 #include <cstring>
-#include <memory>
+#include <optional>
 
 namespace jvn
 {
@@ -58,11 +58,22 @@ namespace jvn
         friend class Iter;
         using iterator              = Iter;
 
+        unordered_map()
+            :LOAD_FACTOR(0.8),
+            GROWTH_FACTOR(4),
+            m_capacity(64),
+            m_allocator(std::nullopt),
+            m_max_elems(size_type(m_capacity * LOAD_FACTOR)),
+            m_size(0)
+        {
+            initilizeBucket();
+        }
+
         unordered_map(size_type inital_capacity, float load_factor, size_type growth_factor, allocator_type& allocator)
             :LOAD_FACTOR(load_factor),
             GROWTH_FACTOR(closestPowerOfTwo(growth_factor)),
             m_capacity(closestPowerOfTwo(inital_capacity)),
-            m_allocator(allocator),
+            m_allocator(std::ref(allocator)),
             m_max_elems(size_type(m_capacity * LOAD_FACTOR)),
             m_size(0)
         { 
@@ -75,7 +86,7 @@ namespace jvn
                 if (iter->first != uint8_t(-1))
                     iter->second.~value_type();
 
-            m_allocator.deallocate(m_bucket, m_capacity + 1);
+            m_allocator->get().deallocate(m_bucket, m_capacity + 1);
         }
 
         inline mapped_type& operator[](const key_type& key)
@@ -194,7 +205,7 @@ namespace jvn
 
         bucket_type* m_bucket;
         bucket_type* m_bucket_end;
-        allocator_type& m_allocator;
+        std::optional<std::reference_wrapper<allocator_type>> m_allocator;
         hasher m_hasher;
         size_type m_capacity, m_size;
         // The number of elements that triggers grow()
@@ -224,13 +235,13 @@ namespace jvn
                 if (iter->first != uint8_t(-1))
                     insert(std::move(iter->second));
 
-            m_allocator.deallocate(prev_bucket, prev_capacity + 1);
+            m_allocator->get().deallocate(prev_bucket, prev_capacity + 1);
         }
 
         void initilizeBucket()
         {
             // +1 is for the differantiation of the end() iterator
-            m_bucket = m_allocator.allocate(m_capacity + 1);
+            m_bucket = m_allocator->get().allocate(m_capacity + 1);
             std::memset(m_bucket, uint8_t(-1), m_capacity * sizeof(*m_bucket));
                 
             //Element at the end must have a non -1u info value
