@@ -59,21 +59,21 @@ namespace jvn
         using iterator              = Iter;
 
         unordered_map()
-            :LOAD_FACTOR(0.8),
-            GROWTH_FACTOR(4),
+            :m_allocator(std::nullopt),
+            LOAD_FACTOR(0.8),
+            GROWTH_FACTOR(2),
             m_capacity(64),
-            m_allocator(std::nullopt),
             m_max_elems(size_type(m_capacity * LOAD_FACTOR)),
             m_size(0)
         {
             initilizeBucket();
         }
 
-        unordered_map(size_type inital_capacity, float load_factor, size_type growth_factor, allocator_type& allocator)
-            :LOAD_FACTOR(load_factor),
+        unordered_map(allocator_type& allocator, size_type inital_capacity = 64, float load_factor = 0.8, size_type growth_factor = 2)
+            :m_allocator(std::ref(allocator)),
+            LOAD_FACTOR(load_factor),
             GROWTH_FACTOR(closestPowerOfTwo(growth_factor)),
             m_capacity(closestPowerOfTwo(inital_capacity)),
-            m_allocator(std::ref(allocator)),
             m_max_elems(size_type(m_capacity * LOAD_FACTOR)),
             m_size(0)
         { 
@@ -105,7 +105,7 @@ namespace jvn
                     return end();
 
                 // Key found
-                if (iter->first == id && key_equal{}(iter->second.first, key))
+                if (iter->first == id && m_key_equal(iter->second.first, key))
                     return iterator(iter);
 
                 ++id;
@@ -143,7 +143,7 @@ namespace jvn
                 }
 
                 // Key found
-                if (iter->first == id && JVN_UNLIKELY(key_equal{}(key_value_pair.first, iter->second.first)))
+                if (iter->first == id && JVN_UNLIKELY(m_key_equal(key_value_pair.first, iter->second.first)))
                     return std::pair<iterator, bool>(iterator(iter), false);
 
                 // Swap rich with the poor
@@ -202,11 +202,12 @@ namespace jvn
         const float LOAD_FACTOR;
         const size_type GROWTH_FACTOR;
 
+        std::optional<std::reference_wrapper<allocator_type>> m_allocator;
+        hasher m_hasher;
+        key_equal m_key_equal;
 
         bucket_type* m_bucket;
         bucket_type* m_bucket_end;
-        std::optional<std::reference_wrapper<allocator_type>> m_allocator;
-        hasher m_hasher;
         size_type m_capacity, m_size;
         // The number of elements that triggers grow()
         size_type m_max_elems;
@@ -253,7 +254,7 @@ namespace jvn
         // Returns the first equal or bigger power of two. The return value is always greater than 1.
         static size_type closestPowerOfTwo(size_type num) noexcept
         {
-            if (num < 2)
+            if (num <= 2)
                 return 2u;
 
             num--;
