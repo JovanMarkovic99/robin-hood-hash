@@ -41,3 +41,8 @@ if (value != map.end())
 else
     std::cout << "Value not found" << std::endl;
 ```
+### Benchmarking
+
+The `benchmark` directory contains benchmarking functions that can be used to measure the performance of `jvn::unordered_map`. To run the benchmarks, follow these steps:
+1. Generate a file containing test data. A Python script is provided in the `benchmark` directory to generate test data. Run the script with the following command: `python generate_test_data.py <size> <file>`
+2. Compile and run the benchmark executable. Use the following commands: `g++ benchmark.cpp -o benchmark` to compile and `./benchmark <file>` to run the benchmark, where `<file>` is the name of the file containing the CSV test data.
