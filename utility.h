@@ -31,6 +31,15 @@
 #    define JVN_UNLIKELY(condition) __builtin_expect(condition, 0)
 #endif
 
+// pragma
+#ifdef _MSC_VER
+    #define JVN_PRAGMA_PACK_PUSH(n)  __pragma(pack(push, n))
+    #define JVN_PRAGMA_PACK_POP()    __pragma(pack(pop))
+#else
+    #define JVN_PRAGMA_PACK_PUSH(n) _Pragma("pack(push, n)")
+    #define JVN_PRAGMA_PACK_POP()   _Pragma("pack(pop)")
+#endif
+
 // End custom macro  -----------------------------------
 
 #endif

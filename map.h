@@ -8,25 +8,35 @@
 
 namespace jvn
 {
+    JVN_PRAGMA_PACK_PUSH(1)
+    template <class Kt, class Vt>
+    struct hash_bucket {
+        // Distance from ideal hash position
+        uint8_t id;
+
+        std::pair<Kt, Vt> key_value_pair;
+    };
+    JVN_PRAGMA_PACK_POP()
+
     template <class Kt, class Vt, 
             class Hasher = hash<Kt>, 
             class KeyEq = std::equal_to<Kt>, 
-            class Alloc = std::allocator<std::pair<uint8_t, std::pair<Kt, Vt>>>>
+            class Alloc = std::allocator<hash_bucket<Kt, Vt>>>
         class unordered_map
     {
     public:
         using hasher                = Hasher;
-        using mapped_type           = Vt;
-        using key_type              = Kt;
         using key_equal             = KeyEq;
-        using value_type            = std::pair<Kt, Vt>;
-        using pointer               = value_type*;
-        using reference             = value_type&;
-        using const_reference       = const value_type&;
-        using bucket_type           = std::pair<uint8_t, value_type>;
         using allocator_type        = Alloc;
         using size_type             = typename Alloc::size_type;
         using difference_type       = typename Alloc::difference_type;
+        using key_type              = Kt;
+        using mapped_type           = Vt;
+        using value_type            = std::pair<key_type, mapped_type>;
+        using pointer               = value_type*;
+        using reference             = value_type&;
+        using const_reference       = const value_type&;
+        using bucket_type           = hash_bucket<key_type, mapped_type>;
     public:
 
         class Iter
@@ -34,7 +44,7 @@ namespace jvn
         public:
             Iter(bucket_type* bucket_ptr): m_bucket_ptr(bucket_ptr)
             {   
-                if (m_bucket_ptr->first == uint8_t(-1))
+                if (m_bucket_ptr->id == uint8_t(-1))
                     operator++();
             }
             Iter(const Iter&)               = default;
@@ -45,11 +55,11 @@ namespace jvn
             inline friend constexpr bool operator!=(const Iter& lhs, const Iter& rhs) { return !(lhs == rhs); }
             inline Iter& operator++() 
             {
-                while ((++m_bucket_ptr)->first == uint8_t(-1));
+                while ((++m_bucket_ptr)->id == uint8_t(-1));
                 return *this; 
             }
-            inline const pointer operator->() const { return &(m_bucket_ptr->second); }
-            inline const_reference operator*() const { return m_bucket_ptr->second; }
+            inline const pointer operator->() const { return &(m_bucket_ptr->key_value_pair); }
+            inline const_reference operator*() const { return m_bucket_ptr->key_value_pair; }
         private:
             friend class unordered_map;
             bucket_type* m_bucket_ptr;
@@ -82,16 +92,16 @@ namespace jvn
 
         ~unordered_map()
         {
-            for (auto iter = m_bucket; iter != end(); ++iter)
-                if (iter->first != uint8_t(-1))
-                    iter->second.~value_type();
+            for (bucket_type* iter = m_bucket; iter != end(); ++iter)
+                if (iter->id != uint8_t(-1))
+                    iter->key_value_pair.~value_type();
 
             m_allocator->get().deallocate(m_bucket, m_capacity + 1);
         }
 
         inline mapped_type& operator[](const key_type& key)
         {
-            return const_cast<mapped_type&>(insert(value_type(key, mapped_type())).first->second);
+            return const_cast<mapped_type&>(insert(value_type(key, mapped_type())).first->key_value_pair);
         }
 
         iterator find(const key_type& key) const
@@ -101,11 +111,11 @@ namespace jvn
             while (true)
             {
                 // Key not found
-                if (JVN_UNLIKELY(iter->first == uint8_t(-1) || iter->first < id))
+                if (JVN_UNLIKELY(iter->id == uint8_t(-1) || iter->id < id))
                     return end();
 
                 // Key found
-                if (iter->first == id && m_key_equal(iter->second.first, key))
+                if (iter->id == id && m_key_equal(iter->key_value_pair.first, key))
                     return iterator(iter);
 
                 ++id;
@@ -123,16 +133,16 @@ namespace jvn
             while (true)
             {
                 // Found an empty slot
-                if (iter->first == uint8_t(-1))
+                if (iter->id == uint8_t(-1))
                 {
-                    iter->first = id;
-                    ::new (&(iter->second)) auto(std::forward<value_type>(key_value_pair));
+                    iter->id = id;
+                    ::new (&(iter->key_value_pair)) auto(std::forward<value_type>(key_value_pair));
 
                     if (JVN_UNLIKELY(++m_size == m_max_elems))
                     {
                         // Record the original key before growth
                         if (return_iter)
-                            key_value_pair.first = return_iter->second.first;
+                            key_value_pair.first = return_iter->key_value_pair.first;
 
                         grow();
                         return std::pair<iterator, bool>(find(key_value_pair.first), true);
@@ -143,15 +153,15 @@ namespace jvn
                 }
 
                 // Key found
-                if (iter->first == id && JVN_UNLIKELY(m_key_equal(key_value_pair.first, iter->second.first)))
+                if (iter->id == id && JVN_UNLIKELY(m_key_equal(key_value_pair.first, iter->key_value_pair.first)))
                     return std::pair<iterator, bool>(iterator(iter), false);
 
                 // Swap rich with the poor
-                if (iter->first < id)
+                if (iter->id < id)
                 {
                     using std::swap;
-                    swap(iter->first, id);
-                    swap(iter->second, key_value_pair);
+                    swap(iter->id, id);
+                    swap(iter->key_value_pair, key_value_pair);
                     return_iter = return_iter ? return_iter : iter;
                 } 
 
@@ -173,19 +183,19 @@ namespace jvn
             bucket_type* iter = find_iter.m_bucket_ptr,
                     *prev_iter = find_iter.m_bucket_ptr;
             advanceIter(iter);
-            while (iter->first != uint8_t(0) && iter->first != uint8_t(-1))
+            while (iter->id != uint8_t(0) && iter->id != uint8_t(-1))
             {
                 using std::swap;
                 swap(*prev_iter, *iter);
-                --(prev_iter->first);
+                --(prev_iter->id);
 
                 prev_iter = iter;
                 advanceIter(iter);
             }
 
             // Erase the element
-            prev_iter->first = uint8_t(-1);
-            prev_iter->second.~value_type();
+            prev_iter->id = uint8_t(-1);
+            prev_iter->key_value_pair.~value_type();
             --m_size;
 
             return size_type(1);
@@ -233,8 +243,8 @@ namespace jvn
 
             // Rehash and insert
             for (auto iter = prev_bucket; iter != prev_bucket_end; ++iter)
-                if (iter->first != uint8_t(-1))
-                    insert(std::move(iter->second));
+                if (iter->id != uint8_t(-1))
+                    insert(std::move(iter->key_value_pair));
 
             m_allocator->get().deallocate(prev_bucket, prev_capacity + 1);
         }
@@ -246,7 +256,7 @@ namespace jvn
             std::memset(m_bucket, uint8_t(-1), m_capacity * sizeof(*m_bucket));
                 
             //Element at the end must have a non -1u info value
-            m_bucket[m_capacity].first = uint8_t(0);
+            m_bucket[m_capacity].id = uint8_t(0);
 
             m_bucket_end = m_bucket + m_capacity;
         }

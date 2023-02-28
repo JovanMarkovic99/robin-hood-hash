@@ -2,7 +2,6 @@
 #define JVN_ROBIN_HOOD_MEMORY_
 
 #include <cstdlib>
-#include <iostream>
 
 namespace jvn
 {
