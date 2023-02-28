@@ -1,14 +1,43 @@
-# robin-hood-hash-map
+# jvn::unordered_map - Robin Hood Hashing Implementation in C++
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-A hashmap implementation, using the RobinHood algorithm.\
-https://dspace.mit.edu/bitstream/handle/1721.1/130693/1251799942-MIT.pdf \
-\
-By default, it should be noticeably faster than std::unordered_map, although further optimization is necessary.
+`jvn::unordered_map` is a C++ library that provides a fast and efficient hash table implementation based on the Robin Hood Hashing algorithm. It is designed to be highly performant while minimizing memory usage, making it an ideal choice for applications that require fast lookups and insertions.
 
-## Memory layout
+## Features
 
-The memory layout consists of a continuous array (bucket) of special elements.
-The special element is one information byte, containing the distance from the hash position,
-followed by a key-value pair. Special elements aren't constructed until a key-value is inserted.
+* Robin Hood Hashing algorithm for high-performance hash table operations.
+* Flat memory layout that efficiently utilizes memory by packing structs containing a key-value pair and hash distance.
+* Size of the hash table is a power of two for fast hash trimming.
+* Optimized code that uses compiler-specific commands to denote unlikely branches.
+* Fixed-size memory pool `jvn::AlternatingFixedMemoryAllocator` for quick allocation.
+* Benchmarking functions for measuring performance.
 
-The size of the bucket is always 2^n in order to optimally trim the hash.
+## Getting Started
+
+### Prerequisites
+
+* A C++ compiler that supports C++11 or later.
+* No external libraries or dependencies are required.
+
+### Installation
+
+`jvn::unordered_map` is a header-only library, so there is no installation process required. Simply copy the header files to your project directory and include them in your source code.
+
+### Usage
+
+```cpp
+#include "map.h"
+
+jvn::unordered_map<int, std::string> map;
+
+p.insert(std::make_pair<int, std::string>(1, "one"));
+p.insert(std::make_pair<int, std::string>(2, "two"));
+p.insert(std::make_pair<int, std::string>(3, "three"));
+
+auto value = map.find(2);
+
+if (value != map.end())
+    std::cout << "Value found: " << value->second << std::endl;
+else
+    std::cout << "Value not found" << std::endl;
+```
