@@ -10,7 +10,7 @@
 
 #include "../map.h"
 
-#define NUM_ITERATIONS 10
+#define NUM_ITERATIONS 100
 
 using KeyType = int;
 using ValueType = int;
@@ -20,17 +20,26 @@ using MapType = jvn::unordered_map<KeyType, ValueType>;
 using Clock = std::chrono::high_resolution_clock;
 
 
-void printData(double avrg, double stddev, std::string function_name)
+void printData(const std::vector<KeyValueType>& data_vec, uint64_t avrg, uint64_t stddev, std::string function_name)
 {
     std::cout << "Finished benchmarking " << function_name << " after " << NUM_ITERATIONS << " iterations.\n";
-    std::cout << "Average total time: " << uint64_t(avrg) << "ns +/- " << uint64_t(stddev) << "ns\n";
-    std::cout << "Average per-element time: " << uint64_t(avrg / NUM_ITERATIONS) << "ns\n\n";
+    std::cout << "Average total time: " << avrg / 1000.0L << "ms +/- " << stddev / 1000.0L << "ms\n";
+    std::cout << "Average per-element time: " << avrg / data_vec.size() << "ns\n\n";
 }
 
-std::pair<double, double> calcStats(const std::array<uint64_t, NUM_ITERATIONS>& measurements)
+std::pair<uint64_t, uint64_t> calcStats(const std::array<uint64_t, NUM_ITERATIONS>& measurements)
 {
-    double avrg = (double)std::accumulate(measurements.begin(), measurements.end(), 0) / NUM_ITERATIONS,
-        sum_of_squared_diff = 0;
+    // Overflow-free average calculation
+    uint64_t avrg = 0,
+        reminder = 0;
+    for (uint64_t time: measurements)
+    {
+        avrg += time / NUM_ITERATIONS;
+        reminder += time % NUM_ITERATIONS;
+    }
+    avrg += reminder / NUM_ITERATIONS;
+
+    uint64_t sum_of_squared_diff = 0;
     for (uint64_t time: measurements)
         sum_of_squared_diff += std::pow(time - avrg, 2);
 
@@ -81,31 +90,36 @@ uint64_t measureInsertion(const std::vector<KeyValueType>& data_vec)
     return std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
 }
 
-std::pair<double, double> measure(const std::vector<KeyValueType>& data_vec, std::function<uint64_t(const std::vector<KeyValueType>&)> measuring_func, std::string function_name)
+std::pair<uint64_t, uint64_t> measure(const std::vector<KeyValueType>& data_vec, std::function<uint64_t(const std::vector<KeyValueType>&)> measuring_func, std::string function_name)
 {
     std::cout << "Benchmarking " << function_name << "...\n";
 
     std::array<uint64_t, NUM_ITERATIONS> measurements;
+    std::cout << "Iteration ";
     for (int i = 0; i < NUM_ITERATIONS; ++i)
     {
-        std::cout << "Iteration: " << i + 1 << '\n';
+        std::cout << i + 1;
+
         measurements[i] = measuring_func(data_vec);
+        
+        // Replace iteration number
+        std::cout << std::string(std::ceil(log10(i + 2)), '\b');
     }
 
-    std::cout << '\n';
+    std::cout << "\b\bs finished succesfully.\n";
     return calcStats(measurements);
 }
 
 void runBenchmark(const std::vector<KeyValueType>& data_vec)
 {
     auto [avrg_insertion, dev_insertion] =  measure(data_vec, measureInsertion, "insertions");
-    printData(avrg_insertion, dev_insertion, "insertions");
+    printData(data_vec, avrg_insertion, dev_insertion, "insertions");
 
     auto [avrg_find, dev_find] =  measure(data_vec, measureFind, "finds");
-    printData(avrg_insertion, dev_insertion, "insertions");
+    printData(data_vec, avrg_find, dev_find, "finds");
 
     auto [avrg_erase, dev_erase] =  measure(data_vec, measureErase, "erases");
-    printData(avrg_insertion, dev_insertion, "insertions");
+    printData(data_vec, avrg_erase, dev_erase, "erases");
 }
 
 
