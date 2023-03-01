@@ -106,7 +106,7 @@ std::pair<uint64_t, uint64_t> measure(const std::vector<KeyValueType>& data_vec,
         std::cout << std::string(std::ceil(log10(i + 2)), '\b');
     }
 
-    std::cout << "\b\bs finished succesfully.\n";
+    std::cout << "\bs finished succesfully.\n";
     return calcStats(measurements);
 }
 
