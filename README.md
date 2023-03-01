@@ -16,7 +16,7 @@
 
 ### Prerequisites
 
-* A C++ compiler that supports C++11 or later.
+* A C++ compiler that supports C++17 or later.
 * No external libraries or dependencies are required.
 
 ### Installation
