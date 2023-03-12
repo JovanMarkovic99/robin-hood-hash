@@ -123,7 +123,9 @@ namespace jvn
             }
         }
 
-        template <class Ty, std::enable_if_t<std::is_same<std::decay_t<Ty>, value_type>::value, int> = 0>
+        // TODO: Add emplace support, rewrite insert based off emplace
+
+        template <class Ty = value_type, typename = std::enable_if_t<std::is_convertible_v<Ty, value_type>>>
         std::pair<iterator, bool> insert(Ty&& key_value_pair)
         {
             bucket_type* return_iter = nullptr;

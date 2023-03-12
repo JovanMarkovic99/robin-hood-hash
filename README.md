@@ -30,9 +30,9 @@
 
 jvn::unordered_map<int, std::string> map;
 
-map.insert(std::make_pair<int, std::string>(1, "one"));
-map.insert(std::make_pair<int, std::string>(2, "two"));
-map.insert(std::make_pair<int, std::string>(3, "three"));
+map.insert({1, "one"});
+map.insert({2, "two"});
+map.insert({3, "three"});
 
 auto value = map.find(2);
 
