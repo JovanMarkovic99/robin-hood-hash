@@ -151,7 +151,7 @@ namespace jvn
             // an empty slot is found or an element with the 0 hash distance
             bucket_type* next_iter = advanceIter(iter);
             while (next_iter->id != uint8_t(0) && next_iter->id != uint8_t(-1)) {
-                iter->id == --(next_iter->id);
+                iter->id = next_iter->id - 1;
                 using std::swap;
                 swap(iter->key_value_pair, next_iter->key_value_pair);
 
