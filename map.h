@@ -129,7 +129,7 @@ namespace jvn
                 } 
 
                 // Key found
-                if (iter->id == id && JVN_UNLIKELY(m_key_equal(key_value_pair.first, iter->key_value_pair.first)))
+                if (JVN_UNLIKELY(iter->id == id && m_key_equal(key_value_pair.first, iter->key_value_pair.first)))
                     return std::pair<iterator, bool>(iterator(iter), false);
 
                 ++id;
