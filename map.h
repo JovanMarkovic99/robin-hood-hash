@@ -97,22 +97,23 @@ namespace jvn
 
         template <class KeyTy>
         inline mapped_type& operator[](KeyTy&& key) {
-            return insert(value_type(std::forward<KeyTy>(key), mapped_type())).first->second;
+            return insert(m_value_type(std::forward<KeyTy>(key), mapped_type())).first->second;
         }
 
         template <class... Valtys>
         inline std::pair<iterator, bool> emplace(Valtys&&... vals) {
-            return insert(value_type(std::forward<Valtys>(vals)...));
+            return insert(m_value_type(std::forward<Valtys>(vals)...));
         }
 
-        std::pair<iterator, bool> insert(m_value_type key_value_pair) {
+        template <class ValTy = m_value_type>
+        std::pair<iterator, bool> insert(ValTy&& key_value_pair) {
             uint8_t id = 0;
             bucket_type* iter = m_bucket + hashAndTrim(key_value_pair.first);
             while (true) {
                 // Empty slot found
                 if (iter->id == uint8_t(-1)) {
                     iter->id = id;
-                    ::new (&(iter->key_value_pair)) auto(std::move(key_value_pair));
+                    ::new (&(iter->key_value_pair)) auto(std::forward<ValTy>(key_value_pair));
                     break;
                 }
 
@@ -120,8 +121,7 @@ namespace jvn
                 if (iter->id < id) {
                     insertFrom(advanceIter(iter), iter->id + 1, std::move(iter->key_value_pair));
                     iter->id = id;
-                    iter->key_value_pair = std::move(key_value_pair);
-
+                    iter->key_value_pair = std::forward<ValTy>(key_value_pair);
                     break;
                 } 
 
