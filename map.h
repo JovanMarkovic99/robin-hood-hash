@@ -152,7 +152,7 @@ namespace jvn
             // an empty slot is found or an element with the 0 hash distance
             bucket_type* next_iter = advanceIter(iter);
             while (next_iter->id != uint8_t(0) && next_iter->id != uint8_t(-1)) {
-                iter->id = next_iter->id - 1;
+                iter->id == --(next_iter->id);
                 using std::swap;
                 swap(iter->key_value_pair, next_iter->key_value_pair);
 
@@ -171,7 +171,6 @@ namespace jvn
             uint8_t id = 0;
             bucket_type* iter = m_bucket + hashAndTrim(key);
             while (true) {
-                // TODO: Check performance differnece of the addition of JVN_LIKELY
                 // Key found
                 if (iter->id == id && m_key_equal(iter->key_value_pair.first, key))
                     return iterator(iter);
