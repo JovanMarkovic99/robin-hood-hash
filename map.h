@@ -107,6 +107,9 @@ namespace jvn
 
         template <class ValTy = m_value_type>
         std::pair<iterator, bool> insert(ValTy&& key_value_pair) {
+            if (JVN_UNLIKELY(m_size == m_max_elems))
+                grow();
+
             uint8_t id = 0;
             bucket_type* iter = m_bucket + hashAndTrim(key_value_pair.first);
             while (true) {
@@ -132,13 +135,9 @@ namespace jvn
                 ++id;
                 iter = advanceIter(iter);
             }
-
-            if (JVN_LIKELY(++m_size != m_max_elems))
-                return std::pair<iterator, bool>(iterator(iter), true);
-            
-            key_type key = iter->key_value_pair.first;
-            grow();
-            return std::pair<iterator, bool>(find(key), true);
+    
+            ++m_size;
+            return std::pair<iterator, bool>(iterator(iter), true);
         }
 
 
