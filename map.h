@@ -102,14 +102,15 @@ namespace jvn
             return insert(value_type(std::forward<Valtys>(vals)...));
         }
 
-        std::pair<iterator, bool> insert(value_type key_value_pair) {
+        template <class ValTy = value_type>
+        std::pair<iterator, bool> insert(ValTy&& key_value_pair) {
             uint8_t id = 0;
             bucket_type* iter = m_bucket + hashAndTrim(key_value_pair.first);
             while (true) {
                 // Empty slot found
                 if (iter->id == uint8_t(-1)) {
                     iter->id = id;
-                    ::new (&(iter->key_value_pair)) auto(std::move(key_value_pair));
+                    ::new (&(iter->key_value_pair)) auto(std::forward<ValTy>(key_value_pair));
                     break;
                 }
 
