@@ -21,10 +21,8 @@ namespace fnv
     JVN_INLINE_VAR constexpr size_t FNV_PRIME        = 16777619U;
 #endif
     
-inline size_t fnv_1a(size_t val, const unsigned char* bytes, size_t count) noexcept
-{
-    for (size_t i = 0; i < count; ++i)
-    {
+inline size_t fnv_1a(size_t val, const unsigned char* bytes, size_t count) noexcept {
+    for (size_t i = 0; i < count; ++i) {
         val ^= bytes[i];
         val *= FNV_PRIME;
     }
@@ -45,15 +43,13 @@ JVN_INLINE_VAR constexpr size_t SEED = 0xe17a1465;
     //  MurmurHash64A
     JVN_INLINE_VAR constexpr size_t m = 0xc6a4a7935bd1e995;
     JVN_INLINE_VAR constexpr size_t r = 47;
-    size_t murmur_hash2(const unsigned char* bytes, size_t count) noexcept
-    {
+    size_t murmur_hash2(const unsigned char* bytes, size_t count) noexcept {
         size_t hash = SEED ^ (count * m);
 
         const size_t* data = reinterpret_cast<const size_t*>(bytes);
         const size_t* end = data + (count / 8);
 
-        while(data != end)
-        {
+        while(data != end) {
             size_t k = *data++;
 
             k *= m; 
@@ -66,8 +62,7 @@ JVN_INLINE_VAR constexpr size_t SEED = 0xe17a1465;
 
         const unsigned char* data2 = reinterpret_cast<const unsigned char*>(data);
 
-        switch(count & 7)
-        {
+        switch(count & 7) {
         case 7: hash ^= size_t(data2[6]) << 48;
         case 6: hash ^= size_t(data2[5]) << 40;
         case 5: hash ^= size_t(data2[4]) << 32;
@@ -86,8 +81,7 @@ JVN_INLINE_VAR constexpr size_t SEED = 0xe17a1465;
     } 
 
     // MurmurHash3 Int64 mix
-    inline size_t murmur_hash3_int(size_t k) noexcept
-    {
+    inline size_t murmur_hash3_int(size_t k) noexcept {
         k ^= k >> 33;
         k *= 0xff51afd7ed558ccd;
         k ^= k >> 33;
@@ -101,8 +95,7 @@ JVN_INLINE_VAR constexpr size_t SEED = 0xe17a1465;
     // MurmurHashNeutral2
     JVN_INLINE_VAR constexpr size_t m = 0x5bd1e995;
     JVN_INLINE_VAR constexpr size_t r = 24;
-    size_t murmur_hash2(const unsigned char* bytes, size_t count) noexcept
-    {
+    size_t murmur_hash2(const unsigned char* bytes, size_t count) noexcept {
         size_t hash = SEED ^ count;
 
         while(count >= 4)
@@ -141,8 +134,7 @@ JVN_INLINE_VAR constexpr size_t SEED = 0xe17a1465;
     } 
 
     // MurmurHash3 Int32 mix
-    inline size_t murmur_hash3_int(size_t h) noexcept
-    {
+    inline size_t murmur_hash3_int(size_t h) noexcept {
         h ^= h >> 16;
         h *= 0x85ebca6b;
         h ^= h >> 13;
@@ -163,8 +155,7 @@ template <class Kt>
 struct hash
 {
     // General byte hashing
-    size_t operator()(const Kt& key) const noexcept
-    {
+    size_t operator()(const Kt& key) const noexcept {
         return murmur_hash::murmur_hash2(&reinterpret_cast<const unsigned char&>(key), sizeof(key));
     }
 };
@@ -178,8 +169,7 @@ struct hash
     template <>                                                 \
     struct hash<Ty>                                             \
     {                                                           \
-        size_t operator()(const Ty key) const noexcept          \
-        {                                                       \
+        size_t operator()(const Ty key) const noexcept {        \
             return murmur_hash::murmur_hash3_int(size_t(key));  \
         }                                                       \
     }                                                           
@@ -201,9 +191,9 @@ JVN_HASH_INT(unsigned long);
 JVN_HASH_INT(unsigned long long);
 
 template <class Ty>
-struct hash<Ty*> {
-    size_t operator()(Ty* ptr) const noexcept
-    {
+struct hash<Ty*> 
+{
+    size_t operator()(Ty* ptr) const noexcept {
         return murmur_hash::murmur_hash3_int(size_t(ptr));
     }
 };
@@ -211,10 +201,8 @@ struct hash<Ty*> {
 template <>
 struct hash<std::string>
 {
-    size_t operator()(const std::string& str) const noexcept
-    {
-        return murmur_hash::murmur_hash2(
-            reinterpret_cast<const unsigned char*>(str.data()), str.size());
+    size_t operator()(const std::string& str) const noexcept{
+        return murmur_hash::murmur_hash2(reinterpret_cast<const unsigned char*>(str.data()), str.size());
     }
 };
 

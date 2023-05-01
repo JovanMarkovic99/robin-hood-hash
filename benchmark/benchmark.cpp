@@ -14,7 +14,7 @@
 
 using KeyType = int;
 using ValueType = int;
-using KeyValueType = std::pair<int, int>;
+using KeyValueType = std::pair<KeyType, ValueType>;
 using MapType = jvn::unordered_map<KeyType, ValueType>;
 
 using Clock = std::chrono::high_resolution_clock;

@@ -22,7 +22,7 @@ namespace jvn
 
         AlternatingFixedMemoryAllocator(size_type capacity)
             :Capacity(capacity),
-            m_alloc_left(true)
+            m_alloc_left(true)                              
         {
             m_data = static_cast<pointer>(_aligned_malloc(Capacity * sizeof(*m_data), alignof(*m_data)));
             if (!m_data)
@@ -31,21 +31,18 @@ namespace jvn
             m_right = m_data + Capacity;
         }
 
-        ~AlternatingFixedMemoryAllocator() 
-        {
+        ~AlternatingFixedMemoryAllocator() {
             _aligned_free(static_cast<void*>(m_data));
         }
         
         AlternatingFixedMemoryAllocator(const AlternatingFixedMemoryAllocator&) = delete;
         AlternatingFixedMemoryAllocator operator=(const AlternatingFixedMemoryAllocator&) = delete;
         
-        pointer allocate(size_type n) 
-        {
+        pointer allocate(size_type n) {
             if (m_left + n > m_right)
                 return nullptr;
 
-            if (m_alloc_left)
-            {
+            if (m_alloc_left) {
                 m_left += n;
                 m_alloc_left = false;
                 return m_left - n;
@@ -56,15 +53,12 @@ namespace jvn
             return m_right;
         }
         
-        void deallocate(pointer ptr, size_type n) 
-        {   
-            if (ptr == m_right)
-            {
+        void deallocate(pointer ptr, size_type n) {   
+            if (ptr == m_right) {
                 m_right += n;
                 m_alloc_left = false;
             }
-            else if (ptr + n == m_left)
-            {
+            else if (ptr + n == m_left) {
                 m_left -= n;
                 m_alloc_left = true;
             }
