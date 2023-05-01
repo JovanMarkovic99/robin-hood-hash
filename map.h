@@ -34,9 +34,10 @@ namespace jvn
         using value_type            = std::pair<const key_type, mapped_type>;
         using pointer               = value_type*;
         using reference             = value_type&;
+
+        using bucket_type           = hash_bucket<key_type, mapped_type>;
     private:
         using m_value_type          = std::pair<key_type, mapped_type>;
-        using m_bucket_type         = hash_bucket<key_type, mapped_type>;
     public:
 
         class Iter
@@ -52,13 +53,13 @@ namespace jvn
                 while ((++m_bucket_ptr)->id == uint8_t(-1));
                 return *this;
             }
-            inline pointer operator->() const { return &(m_bucket_ptr->key_value_pair); }
-            inline reference operator*() const { return m_bucket_ptr->key_value_pair; }
+            inline pointer operator->() const { return reinterpret_cast<pointer>(&(m_bucket_ptr->key_value_pair)); }
+            inline reference operator*() const { return reinterpret_cast<reference>(m_bucket_ptr->key_value_pair); }
         private:
             friend class unordered_map;
-            m_bucket_type* m_bucket_ptr;
+            bucket_type* m_bucket_ptr;
             
-            Iter(m_bucket_type* bucket_ptr): m_bucket_ptr(bucket_ptr)
+            Iter(bucket_type* bucket_ptr): m_bucket_ptr(bucket_ptr)
             {   
                 if (m_bucket_ptr->id == uint8_t(-1))
                     operator++();
@@ -87,7 +88,7 @@ namespace jvn
         { initilizeBucket(); }
 
         ~unordered_map() {
-            for (m_bucket_type* iter = m_bucket; iter != end(); ++iter)
+            for (bucket_type* iter = m_bucket; iter != end(); ++iter)
                 if (iter->id != uint8_t(-1))
                     iter->key_value_pair.~m_value_type();
 
@@ -104,25 +105,23 @@ namespace jvn
             return insert(value_type(std::forward<Valtys>(vals)...));
         }
 
-        template <class ValTy = value_type>
-        std::pair<iterator, bool> insert(ValTy&& key_value_pair) {
+        std::pair<iterator, bool> insert(m_value_type key_value_pair) {
             uint8_t id = 0;
-            m_bucket_type* iter = m_bucket + hashAndTrim(key_value_pair.first);
+            bucket_type* iter = m_bucket + hashAndTrim(key_value_pair.first);
             while (true) {
                 // Empty slot found
                 if (iter->id == uint8_t(-1)) {
                     iter->id = id;
-                    ::new (&(iter->key_value_pair)) auto(std::forward<ValTy>(key_value_pair));
+                    ::new (&(iter->key_value_pair)) auto(std::move(key_value_pair));
                     break;
                 }
 
                 // Rich found
                 if (iter->id < id) {
-                    using std::swap;
-                    swap(iter->id, id);
-                    swap(iter->key_value_pair, key_value_pair);
+                    insertFrom(advanceIter(iter), iter->id + 1, std::move(iter->key_value_pair));
+                    iter->id = id;
+                    iter->key_value_pair = std::move(key_value_pair);
 
-                    insertFrom(advanceIter(iter), id + 1, std::move(key_value_pair));
                     break;
                 } 
 
@@ -145,13 +144,13 @@ namespace jvn
 
         template <class KeyTy>
         size_type erase(KeyTy&& key) noexcept {
-            m_bucket_type* iter = find(std::forward<KeyTy>(key)).m_bucket_ptr;
+            bucket_type* iter = find(std::forward<KeyTy>(key)).m_bucket_ptr;
             if (iter == m_bucket_end)
                 return size_type(0);
 
             // Traverse the bucket and swap elements with previous until
             // an empty slot is found or an element with the 0 hash distance
-            m_bucket_type* prev_iter = std::exchange(iter, advanceIter(iter));
+            bucket_type* prev_iter = std::exchange(iter, advanceIter(iter));
             while (iter->id != uint8_t(0) && iter->id != uint8_t(-1)) {
                 using std::swap;
                 prev_iter->id = iter->id - 1;
@@ -170,7 +169,7 @@ namespace jvn
         template <class KeyTy>
         iterator find(KeyTy&& key) const noexcept {
             uint8_t id = 0;
-            m_bucket_type* iter = m_bucket + hashAndTrim(key);
+            bucket_type* iter = m_bucket + hashAndTrim(key);
             while (true) {
                 // TODO: Check performance differnece of the addition of JVN_LIKELY
                 // Key found
@@ -202,8 +201,8 @@ namespace jvn
         hasher m_hasher;
         key_equal m_key_equal;
 
-        m_bucket_type* m_bucket;
-        m_bucket_type* m_bucket_end;
+        bucket_type* m_bucket;
+        bucket_type* m_bucket_end;
         size_type m_capacity, m_size;
         // The number of elements that triggers grow()
         size_type m_max_elems;
@@ -213,7 +212,7 @@ namespace jvn
         template <class KeyTy>
         inline size_type hashAndTrim(KeyTy&& key) const noexcept { return m_hasher(std::forward<KeyTy>(key)) & (m_capacity - 1); }
 
-        inline m_bucket_type* advanceIter(m_bucket_type* iter) const noexcept {
+        inline bucket_type* advanceIter(bucket_type* iter) const noexcept {
             if (JVN_UNLIKELY(++iter == m_bucket_end))
                     return m_bucket;
 
@@ -221,7 +220,7 @@ namespace jvn
         }
 
         // Re-insert swapped rich element
-        inline void insertFrom(m_bucket_type* iter, uint8_t id, m_value_type&& key_value_pair) {
+        inline void insertFrom(bucket_type* iter, uint8_t id, m_value_type&& key_value_pair) {
             while (iter->id != uint8_t(-1)) {
                 // Rich found
                 if (iter->id < id) {
@@ -241,7 +240,7 @@ namespace jvn
         // TODO: Make exception safe
         void grow() {
             size_type prev_capacity = m_capacity;
-            m_bucket_type* prev_bucket = m_bucket,
+            bucket_type* prev_bucket = m_bucket,
                     *prev_bucket_end = m_bucket_end;
 
             // Grow the bucket
@@ -263,7 +262,7 @@ namespace jvn
             // +1 is for the differantiation of the end() iterator
             m_bucket = m_allocator->get().allocate(m_capacity + 1);
             m_bucket_end = m_bucket + m_capacity;
-            for (m_bucket_type* iter = m_bucket; iter != m_bucket_end; ++iter)
+            for (bucket_type* iter = m_bucket; iter != m_bucket_end; ++iter)
                 iter->id = uint8_t(-1);
                 
             //Element at the end must have a non -1u info value
