@@ -36,6 +36,9 @@ ValueType getValue(std::string input) {
 using KeyValueType = std::pair<KeyType, ValueType>;
 using Clock = std::chrono::high_resolution_clock;
 
+uint64_t timeDifference(std::chrono::time_point<Clock> start, std::chrono::time_point<Clock> stop) {
+    return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count());
+}
 
 void printData(const std::vector<KeyValueType>& data_vec, uint64_t avrg, uint64_t stddev, std::string function_name) {
     std::cout << "Finished benchmarking " << function_name << " after " << NUM_ITERATIONS << " iterations.\n";
@@ -55,9 +58,9 @@ std::pair<uint64_t, uint64_t> calcStats(const std::array<uint64_t, NUM_ITERATION
 
     uint64_t sum_of_squared_diff = 0;
     for (uint64_t time: measurements)
-        sum_of_squared_diff += std::pow(time - avrg, 2);
+        sum_of_squared_diff += (time - avrg) * (time - avrg);
 
-    return {avrg, sqrt(sum_of_squared_diff / NUM_ITERATIONS)};
+    return {avrg, sqrt(double(sum_of_squared_diff) / NUM_ITERATIONS)};
 }
 
 uint64_t measureErase(const std::vector<KeyValueType>& data_vec) {
@@ -70,7 +73,7 @@ uint64_t measureErase(const std::vector<KeyValueType>& data_vec) {
         map.erase(key);
     auto stop = Clock::now();
 
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
+    return timeDifference(start, stop);
 }
 
 uint64_t measureFind(const std::vector<KeyValueType>& data_vec) {
@@ -86,7 +89,7 @@ uint64_t measureFind(const std::vector<KeyValueType>& data_vec) {
     }
     auto stop = Clock::now();
 
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
+    return timeDifference(start, stop);
 }
 
 uint64_t measureInsertion(const std::vector<KeyValueType>& data_vec) {
@@ -97,7 +100,7 @@ uint64_t measureInsertion(const std::vector<KeyValueType>& data_vec) {
         map.insert(key_value);
     auto stop = Clock::now();
 
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
+    return timeDifference(start, stop);
 }
 
 std::pair<uint64_t, uint64_t> measure(const std::vector<KeyValueType>& data_vec, 
@@ -107,13 +110,13 @@ std::pair<uint64_t, uint64_t> measure(const std::vector<KeyValueType>& data_vec,
 
     std::array<uint64_t, NUM_ITERATIONS> measurements;
     std::cout << "Iteration ";
-    for (int i = 0; i < NUM_ITERATIONS; ++i) {
+    for (uint64_t i = 0; i < NUM_ITERATIONS; ++i) {
         std::cout << i + 1;
 
         measurements[i] = measuring_func(data_vec);
         
         // Replace iteration number
-        std::cout << std::string(std::ceil(log10(i + 2)), '\b');
+        std::cout << std::string(std::to_string(i + 1).size(), '\b');
     }
 
     std::cout << "\bs finished succesfully.\n";
@@ -159,7 +162,7 @@ int main(int argc, char* argv[]) {
 
             data_vec.emplace_back(key, value);
         }
-        catch (std::exception e) {
+        catch (const std::exception& e) {
             std::cerr << "Error while parsing CSV line: " << line << '\n';
         }
     }

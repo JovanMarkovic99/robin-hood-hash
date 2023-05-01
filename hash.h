@@ -63,13 +63,13 @@ JVN_INLINE_VAR constexpr size_t SEED = 0xe17a1465;
         const unsigned char* data2 = reinterpret_cast<const unsigned char*>(data);
 
         switch(count & 7) {
-        case 7: hash ^= size_t(data2[6]) << 48;
-        case 6: hash ^= size_t(data2[5]) << 40;
-        case 5: hash ^= size_t(data2[4]) << 32;
-        case 4: hash ^= size_t(data2[3]) << 24;
-        case 3: hash ^= size_t(data2[2]) << 16;
-        case 2: hash ^= size_t(data2[1]) << 8;
-        case 1: hash ^= size_t(data2[0]);
+        case 7: hash ^= size_t(data2[6]) << 48; // intentional fallthrough
+        case 6: hash ^= size_t(data2[5]) << 40; // intentional fallthrough
+        case 5: hash ^= size_t(data2[4]) << 32; // intentional fallthrough
+        case 4: hash ^= size_t(data2[3]) << 24; // intentional fallthrough
+        case 3: hash ^= size_t(data2[2]) << 16; // intentional fallthrough
+        case 2: hash ^= size_t(data2[1]) << 8;  // intentional fallthrough
+        case 1: hash ^= size_t(data2[0]);       // intentional fallthrough
                 hash *= m;
         };
     
