@@ -150,17 +150,17 @@ namespace jvn
 
             // Traverse the bucket and swap elements with previous until
             // an empty slot is found or an element with the 0 hash distance
-            bucket_type* prev_iter = std::exchange(iter, advanceIter(iter));
-            while (iter->id != uint8_t(0) && iter->id != uint8_t(-1)) {
+            bucket_type* next_iter = advanceIter(iter);
+            while (next_iter->id != uint8_t(0) && next_iter->id != uint8_t(-1)) {
+                iter->id = next_iter->id - 1;
                 using std::swap;
-                prev_iter->id = iter->id - 1;
-                swap(prev_iter->key_value_pair, prev_iter->key_value_pair);
+                swap(iter->key_value_pair, next_iter->key_value_pair);
 
-                prev_iter = std::exchange(iter, advanceIter(iter));
+                iter = std::exchange(next_iter, advanceIter(next_iter));
             }
 
-            prev_iter->id = uint8_t(-1);
-            prev_iter->key_value_pair.~m_value_type();
+            iter->id = uint8_t(-1);
+            iter->key_value_pair.~m_value_type();
             --m_size;
 
             return size_type(1);
