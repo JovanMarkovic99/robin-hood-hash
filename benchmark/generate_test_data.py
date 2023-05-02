@@ -18,7 +18,7 @@ def write_data(data, filename):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generate test data for jvn::unordered_map benchmark")
     parser.add_argument("num_pairs", type=int, help="Number of key-value pairs to generate")
-    parser.add_argument("output_file", type=str, help="Output file name")
+    parser.add_argument("output_file", type=str, help="Output file name/path")
 
     args = parser.parse_args()
     data = generate_data(args.num_pairs)

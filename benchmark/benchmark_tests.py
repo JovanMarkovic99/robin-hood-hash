@@ -1,5 +1,6 @@
 import sys
 import os
+import argparse
 import csv
 import subprocess
 import multiprocessing
@@ -106,7 +107,7 @@ def write_data(data, output_path):
 
 # Will force data-set generation and benchmarks if already present
 FORCE_GENERATE_DATA = False
-FORCE_BENCHMARK = False
+FORCE_BENCHMARK = True
 
 # Operations that the benchmark will parse
 OPERATIONS = ("insert", "find", "erase")
@@ -115,6 +116,10 @@ DATASET_DIR = "datasets\\"
 RESULTS_DIR = "results\\"
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Automate test generation and benchmarking for unordered_map's")
+    parser.add_argument("output_file", type=str, help="Output JSON filename")
+    args = parser.parse_args()
+
     dir_path = os.path.dirname(os.path.abspath(__file__))
 
     script_path, data_path = os.path.join(dir_path, "generate_test_data.py"), os.path.join(dir_path, DATASET_DIR)
@@ -127,5 +132,5 @@ if __name__ == "__main__":
 
     processed_data = process_data(data)
     
-    result_data_path = os.path.join(output_path, "result.txt")
+    result_data_path = os.path.join(output_path, args.output_file)
     write_data(processed_data, result_data_path)
