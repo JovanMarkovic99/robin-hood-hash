@@ -16,7 +16,7 @@
 // USER DEFINED --------------------------------------------------------------------------
 
 
-const size_t NUM_ITERATIONS = 1000;
+const size_t NUM_ITERATIONS = 100;
 
 using KeyType = int;
 using ValueType = int;
@@ -40,6 +40,7 @@ static std::unordered_map<std::type_index, const char*> type_names = {
     {typeid(float), "float"},
     {typeid(double), "doable"},
     {typeid(std::string), "std::string"},
+    {typeid(MapType), "jvn::unordered_map"}
 };
 
 
@@ -158,10 +159,11 @@ void runBenchmark(const std::vector<KeyValueType>& data_vec, std::ostream& outpu
     printData(total_erase, avrg_erase, dev_erase, data_size, "erases");
 
     if (output.good()) {
-        output << "Key:\t" << type_names[typeid(KeyType)] << '\n'
+        output << "Map:\t" << type_names[typeid(MapType)] << '\n'
+            << "Key:\t" << type_names[typeid(KeyType)] << '\n'
             << "Value:\t" << type_names[typeid(ValueType)] << '\n'
             << "Iterations:\t" << NUM_ITERATIONS << '\n'
-            << "Data-Set Size:\t" << data_vec.size() << '\n'
+            << "Data-Set:\t" << data_vec.size() << '\n'
             << "Insert:\t" << total_insertion.count() << ',' << avrg_insertion.count() << ',' << dev_insertion.count() << '\n'
             << "Find:\t" << total_find.count() << ',' << avrg_find.count() << ',' << dev_find.count() << '\n'
             << "Erase:\t" << total_erase.count() << ',' << avrg_erase.count() << ',' << dev_erase.count() << '\n'; 
