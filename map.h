@@ -88,7 +88,7 @@ namespace jvn
         { initilizeBucket(); }
 
         ~unordered_map() {
-            for (bucket_type* iter = m_bucket; iter != end(); ++iter)
+            for (bucket_type* iter = m_bucket; iter != m_bucket_end; ++iter)
                 if (iter->id != uint8_t(-1))
                     iter->key_value_pair.~m_value_type();
 
@@ -116,7 +116,7 @@ namespace jvn
                 // Empty slot found
                 if (iter->id == uint8_t(-1)) {
                     iter->id = id;
-                    ::new (&(iter->key_value_pair)) auto(std::forward<ValTy>(key_value_pair));
+                    ::new (&(iter->key_value_pair)) m_value_type(std::forward<ValTy>(key_value_pair));
                     break;
                 }
 
@@ -232,7 +232,7 @@ namespace jvn
             }
 
             iter->id = id;
-            ::new (&(iter->key_value_pair)) auto(std::move(key_value_pair));
+            ::new (&(iter->key_value_pair)) m_value_type(std::move(key_value_pair));
         }
 
         // TODO: Make exception safe
