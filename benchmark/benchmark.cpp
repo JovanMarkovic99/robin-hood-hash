@@ -120,23 +120,17 @@ std::tuple<ClkNano, ClkNano, ClkNano> calcStats(const std::array<ClkNano, NUM_IT
     };
 }
 
+// TODO: Remove potential influence of std::cout
 std::tuple<ClkNano, ClkNano, ClkNano>  measure(const std::vector<KeyValueType>& data_vec, 
                                     std::function<ClkNano(const std::vector<KeyValueType>&)> measuring_func,
                                     std::string function_name) {
     std::cout << "Benchmarking " << function_name << "...\n";
 
     std::array<ClkNano, NUM_ITERATIONS> measurements;
-    std::cout << "Iteration ";
     for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
-        std::cout << i + 1;
-
         measurements[i] = measuring_func(data_vec);
-        
-        // Replace iteration number
-        std::cout << std::string(std::to_string(i + 1).size(), '\b');
     }
 
-    std::cout << "\bs finished succesfully.\n";
     return calcStats(measurements);
 }
 
