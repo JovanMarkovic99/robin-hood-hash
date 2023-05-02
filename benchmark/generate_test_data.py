@@ -1,3 +1,4 @@
+import os
 import argparse
 import random
 
@@ -7,6 +8,9 @@ def generate_data(num_pairs):
     return zip(keys, values)
 
 def write_data(data, filename):
+    dir_path = os.path.dirname(filename)
+    os.makedirs(dir_path, exist_ok=True)
+
     with open(filename, "w") as f:
         for key, value in data:
             f.write(f"{key},{value}\n")

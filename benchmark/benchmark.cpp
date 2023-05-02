@@ -161,6 +161,7 @@ void runBenchmark(const std::vector<KeyValueType>& data_vec, std::ostream& outpu
         output << "Key:\t" << type_names[typeid(KeyType)] << '\n'
             << "Value:\t" << type_names[typeid(ValueType)] << '\n'
             << "Iterations:\t" << NUM_ITERATIONS << '\n'
+            << "Data-Set Size:\t" << data_vec.size() << '\n'
             << "Insert:\t" << total_insertion.count() << ',' << avrg_insertion.count() << ',' << dev_insertion.count() << '\n'
             << "Find:\t" << total_find.count() << ',' << avrg_find.count() << ',' << dev_find.count() << '\n'
             << "Erase:\t" << total_erase.count() << ',' << avrg_erase.count() << ',' << dev_erase.count() << '\n'; 
