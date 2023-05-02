@@ -5,6 +5,7 @@
 #include <chrono>
 #include <vector>
 #include <array>
+#include <unordered_map>
 #include <functional>
 #include <numeric>
 #include <cmath>
@@ -114,23 +115,25 @@ std::tuple<ClkNano, ClkNano, ClkNano> calcStats(const std::array<ClkNano, NUM_IT
         avrg_time, 
         std::chrono::duration_cast<ClkNano>(
             std::chrono::duration<double, std::nano>(
-                sqrt(sum_of_squared_diff.count() / NUM_ITERATIONS)
+                sqrt(double(sum_of_squared_diff.count()) / NUM_ITERATIONS)
             )
         )
     };
 }
 
-// TODO: Remove potential influence of std::cout
+// TODO: Remove potential further influence of std::cout
 std::tuple<ClkNano, ClkNano, ClkNano>  measure(const std::vector<KeyValueType>& data_vec, 
                                     std::function<ClkNano(const std::vector<KeyValueType>&)> measuring_func,
                                     std::string function_name) {
-    std::cout << "Benchmarking " << function_name << "...\n";
+    std::cout << "Benchmarking " << function_name << "..." << std::endl;
+    std::cout.setstate(std::ios_base::failbit);
 
     std::array<ClkNano, NUM_ITERATIONS> measurements;
     for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
         measurements[i] = measuring_func(data_vec);
     }
 
+    std::cout.clear();
     return calcStats(measurements);
 }
 
@@ -155,12 +158,12 @@ void runBenchmark(const std::vector<KeyValueType>& data_vec, std::ostream& outpu
     printData(total_erase, avrg_erase, dev_erase, data_size, "erases");
 
     if (output.good()) {
-        output << "Key:\t" << type_names[typeid(KeyType)] << '\n';
-        output << "Value:\t" << type_names[typeid(ValueType)] << '\n';
-        output << "Iterations:\t" << NUM_ITERATIONS << '\n';
-        output << "Insert:\t" << total_insertion.count() << ',' << avrg_insertion.count() << ',' << dev_insertion.count() << '\n';
-        output << "Find:\t" << total_find.count() << ',' << avrg_find.count() << ',' << dev_find.count() << '\n';
-        output << "Erase:\t" << total_erase.count() << ',' << avrg_erase.count() << ',' << dev_erase.count() << '\n'; 
+        output << "Key:\t" << type_names[typeid(KeyType)] << '\n'
+            << "Value:\t" << type_names[typeid(ValueType)] << '\n'
+            << "Iterations:\t" << NUM_ITERATIONS << '\n'
+            << "Insert:\t" << total_insertion.count() << ',' << avrg_insertion.count() << ',' << dev_insertion.count() << '\n'
+            << "Find:\t" << total_find.count() << ',' << avrg_find.count() << ',' << dev_find.count() << '\n'
+            << "Erase:\t" << total_erase.count() << ',' << avrg_erase.count() << ',' << dev_erase.count() << '\n'; 
     }
 }
 
