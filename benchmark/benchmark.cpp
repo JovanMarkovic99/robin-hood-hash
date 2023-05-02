@@ -1,6 +1,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <typeindex>
 #include <chrono>
 #include <vector>
 #include <array>
@@ -14,8 +15,7 @@
 // USER DEFINED --------------------------------------------------------------------------
 
 
-#define NUM_ITERATIONS 100
-
+const size_t NUM_ITERATIONS = 1000;
 
 using KeyType = int;
 using ValueType = int;
@@ -29,41 +29,34 @@ ValueType getValue(std::string input) {
     return std::stoi(input);
 }
 
+// Type naming
+static std::unordered_map<std::type_index, const char*> type_names = {
+    {typeid(char), "char"},
+    {typeid(short), "short"},
+    {typeid(int), "int"},
+    {typeid(long), "long"},
+    {typeid(long long), "long long"},
+    {typeid(float), "float"},
+    {typeid(double), "doable"},
+    {typeid(std::string), "std::string"},
+};
+
 
 // END USER DEFINED ----------------------------------------------------------------------
 
 
 using KeyValueType = std::pair<KeyType, ValueType>;
 using Clock = std::chrono::high_resolution_clock;
+using ClkNano = std::chrono::nanoseconds;
+using ClkMicro = std::chrono::microseconds;
+using ClkMili = std::chrono::milliseconds;
+using ClkSec = std::chrono::seconds;
 
-uint64_t timeDifference(std::chrono::time_point<Clock> start, std::chrono::time_point<Clock> stop) {
-    return uint64_t(std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count());
+ClkNano timeDifference(std::chrono::time_point<Clock> start, std::chrono::time_point<Clock> stop) {
+    return std::chrono::duration_cast<ClkNano>(stop - start);
 }
 
-void printData(const std::vector<KeyValueType>& data_vec, uint64_t avrg, uint64_t stddev, std::string function_name) {
-    std::cout << "Finished benchmarking " << function_name << " after " << NUM_ITERATIONS << " iterations.\n";
-    std::cout << "Average total time: " << avrg / 1000.0L << "ms +/- " << stddev / 1000.0L << "ms\n";
-    std::cout << "Average per-element time: " << avrg / data_vec.size() << "ns\n\n";
-}
-
-std::pair<uint64_t, uint64_t> calcStats(const std::array<uint64_t, NUM_ITERATIONS>& measurements) {
-    // Overflow-free average calculation
-    uint64_t avrg = 0,
-        reminder = 0;
-    for (uint64_t time: measurements) {
-        avrg += time / NUM_ITERATIONS;
-        reminder += time % NUM_ITERATIONS;
-    }
-    avrg += reminder / NUM_ITERATIONS;
-
-    uint64_t sum_of_squared_diff = 0;
-    for (uint64_t time: measurements)
-        sum_of_squared_diff += (time - avrg) * (time - avrg);
-
-    return {avrg, sqrt(double(sum_of_squared_diff) / NUM_ITERATIONS)};
-}
-
-uint64_t measureErase(const std::vector<KeyValueType>& data_vec) {
+ClkNano measureErase(const std::vector<KeyValueType>& data_vec) {
     MapType map;
     for (auto key_value: data_vec)
         map.insert(key_value);
@@ -76,7 +69,7 @@ uint64_t measureErase(const std::vector<KeyValueType>& data_vec) {
     return timeDifference(start, stop);
 }
 
-uint64_t measureFind(const std::vector<KeyValueType>& data_vec) {
+ClkNano measureFind(const std::vector<KeyValueType>& data_vec) {
     MapType map;
     for (auto key_value: data_vec)
         map.insert(key_value);
@@ -85,14 +78,14 @@ uint64_t measureFind(const std::vector<KeyValueType>& data_vec) {
     for (auto [key, value]: data_vec) {
         auto iter = map.find(key);
         if (iter == map.end())
-            std::cout << "ERROR! Key not found in map!\n";
+            std::cerr << "ERROR! Key not found in map!\n";
     }
     auto stop = Clock::now();
 
     return timeDifference(start, stop);
 }
 
-uint64_t measureInsertion(const std::vector<KeyValueType>& data_vec) {
+ClkNano measureInsertion(const std::vector<KeyValueType>& data_vec) {
     MapType map;
 
     auto start = Clock::now();
@@ -103,14 +96,38 @@ uint64_t measureInsertion(const std::vector<KeyValueType>& data_vec) {
     return timeDifference(start, stop);
 }
 
-std::pair<uint64_t, uint64_t> measure(const std::vector<KeyValueType>& data_vec, 
-                                    std::function<uint64_t(const std::vector<KeyValueType>&)> measuring_func, 
+std::tuple<ClkNano, ClkNano, ClkNano> calcStats(const std::array<ClkNano, NUM_ITERATIONS>& measurements) {
+    ClkNano total_time{0};
+    for (auto time: measurements)
+        total_time += time;
+
+    ClkNano avrg_time = total_time / NUM_ITERATIONS,
+        sum_of_squared_diff{0};
+    for (auto time: measurements) {
+        ClkNano diff = time - avrg_time;
+        ClkNano square_diff = ClkNano(diff.count() * diff.count());
+        sum_of_squared_diff += square_diff;
+    }
+
+    return {
+        total_time, 
+        avrg_time, 
+        std::chrono::duration_cast<ClkNano>(
+            std::chrono::duration<double, std::nano>(
+                sqrt(sum_of_squared_diff.count() / NUM_ITERATIONS)
+            )
+        )
+    };
+}
+
+std::tuple<ClkNano, ClkNano, ClkNano>  measure(const std::vector<KeyValueType>& data_vec, 
+                                    std::function<ClkNano(const std::vector<KeyValueType>&)> measuring_func,
                                     std::string function_name) {
     std::cout << "Benchmarking " << function_name << "...\n";
 
-    std::array<uint64_t, NUM_ITERATIONS> measurements;
+    std::array<ClkNano, NUM_ITERATIONS> measurements;
     std::cout << "Iteration ";
-    for (uint64_t i = 0; i < NUM_ITERATIONS; ++i) {
+    for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
         std::cout << i + 1;
 
         measurements[i] = measuring_func(data_vec);
@@ -123,33 +140,40 @@ std::pair<uint64_t, uint64_t> measure(const std::vector<KeyValueType>& data_vec,
     return calcStats(measurements);
 }
 
-void runBenchmark(const std::vector<KeyValueType>& data_vec) {
-    auto [avrg_insertion, dev_insertion] =  measure(data_vec, measureInsertion, "insertions");
-    printData(data_vec, avrg_insertion, dev_insertion, "insertions");
 
-    auto [avrg_find, dev_find] =  measure(data_vec, measureFind, "finds");
-    printData(data_vec, avrg_find, dev_find, "finds");
-
-    auto [avrg_erase, dev_erase] =  measure(data_vec, measureErase, "erases");
-    printData(data_vec, avrg_erase, dev_erase, "erases");
+void printData(ClkNano total_time, ClkNano avrg, ClkNano stddev, size_t num_elements, std::string function_name) {
+    std::cout << "Finished benchmarking " << function_name << " after " << std::chrono::duration_cast<ClkMili>(total_time).count() << "ms.\n"
+            << "Average total time: " << std::chrono::duration_cast<ClkMicro>(avrg).count() << "μs +/- " 
+                                    << 2 * std::chrono::duration_cast<ClkMicro>(stddev).count() << "μs\n"
+            << "Average per-element time: " << std::chrono::duration_cast<ClkNano>(avrg / num_elements).count() << "ns\n\n";
 }
 
+void runBenchmark(const std::vector<KeyValueType>& data_vec, std::ostream& output) {
+    auto data_size = data_vec.size();
 
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename>\n";
-        return 1;
+    auto [total_insertion, avrg_insertion, dev_insertion] = measure(data_vec, measureInsertion, "insertions");
+    printData(total_insertion, avrg_insertion, dev_insertion, data_size, "insertions");
+
+    auto [total_find, avrg_find, dev_find] = measure(data_vec, measureFind, "finds");
+    printData(total_find, avrg_find, dev_find, data_size, "finds");
+
+    auto [total_erase, avrg_erase, dev_erase] = measure(data_vec, measureErase, "erases");
+    printData(total_erase, avrg_erase, dev_erase, data_size, "erases");
+
+    if (output.good()) {
+        output << "Key:\t" << type_names[typeid(KeyType)] << '\n';
+        output << "Value:\t" << type_names[typeid(ValueType)] << '\n';
+        output << "Iterations:\t" << NUM_ITERATIONS << '\n';
+        output << "Insert:\t" << total_insertion.count() << ',' << avrg_insertion.count() << ',' << dev_insertion.count() << '\n';
+        output << "Find:\t" << total_find.count() << ',' << avrg_find.count() << ',' << dev_find.count() << '\n';
+        output << "Erase:\t" << total_erase.count() << ',' << avrg_erase.count() << ',' << dev_erase.count() << '\n'; 
     }
+}
 
-    std::ifstream input_file(argv[1]);
-    if (!input_file.is_open()) {
-        std::cerr << "Could not open file: " << argv[1] << "\n";
-        return 1;
-    }
-
+std::vector<KeyValueType> readData(std::istream& input) {
     std::vector<KeyValueType> data_vec;
     std::string line;
-    while (getline(input_file, line)) {
+    while (getline(input, line)) {
         auto comma_pos = line.find(',');
         if (comma_pos == std::string::npos) {
             std::cerr << "Error: invalid CSV line: " << line << '\n';
@@ -166,10 +190,36 @@ int main(int argc, char* argv[]) {
             std::cerr << "Error while parsing CSV line: " << line << '\n';
         }
     }
+
+    return data_vec;
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <data_path> [<output_path>]\n";
+        return 1;
+    }
+
+    std::ifstream input_file(argv[1]);
+    if (!input_file.is_open()) {
+        std::cerr << "Could not open file: " << argv[1] << "\n";
+        return 1;
+    }
+    
+    auto data_vec = readData(input_file);
     input_file.close();
 
-    std::cout << "Benchmarking data-set of " << data_vec.size() << " size\n\n";
-    runBenchmark(data_vec);
+    std::ofstream output_file;
+    if (argc > 2) {
+        output_file.open(argv[2], std::ios::out | std::ios::trunc);
+        if (!output_file.is_open()) {
+            std::cerr << "Could not create/open file " << argv[2] << '\n';
+            return 1;
+        }
+    }
+
+    std::cout << "Benchmarking data-set of " << data_vec.size() << " size with " << NUM_ITERATIONS << " iterations\n\n";
+    runBenchmark(data_vec, output_file);
 
     return 0;
 }
