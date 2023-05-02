@@ -1,0 +1,24 @@
+# Ignore pycache directories
+__pycache__/
+
+# Ignore local virtual environments
+venv/
+env/
+
+# Ignore IDE settings
+.idea/
+.vscode/
+
+# Ignore compiled files
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.dll
+*.exe
+
+# Ignore benchmark data
+benchmark/datasets/
+benchmark/results/
+
+!*.gitkeep
