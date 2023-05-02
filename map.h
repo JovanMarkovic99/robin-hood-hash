@@ -73,18 +73,18 @@ namespace jvn
             :LOAD_FACTOR(0.8f),
             GROWTH_FACTOR(2),
             m_allocator(std::nullopt),
-            m_capacity(64),
+            m_dec_capacity(64 - 1),
             m_size(0),
-            m_max_elems(size_type(float(m_capacity) * LOAD_FACTOR))
+            m_max_elems(size_type(float(m_dec_capacity + 1) * LOAD_FACTOR))
         { initilizeBucket(); }
 
         unordered_map(allocator_type& allocator, size_type inital_capacity = 64, float load_factor = 0.8f, size_type growth_factor = 2)
             :LOAD_FACTOR(load_factor),
             GROWTH_FACTOR(closestPowerOfTwo(growth_factor)),
             m_allocator(std::ref(allocator)),
-            m_capacity(closestPowerOfTwo(inital_capacity)),
+            m_dec_capacity(closestPowerOfTwo(inital_capacity) - 1),
             m_size(0),
-            m_max_elems(size_type(float(m_capacity) * LOAD_FACTOR))
+            m_max_elems(size_type(float(m_dec_capacity + 1) * LOAD_FACTOR))
         { initilizeBucket(); }
 
         ~unordered_map() {
@@ -92,7 +92,7 @@ namespace jvn
                 if (iter->id != uint8_t(-1))
                     iter->key_value_pair.~m_value_type();
 
-            m_allocator->get().deallocate(m_bucket, m_capacity + 1);
+            m_allocator->get().deallocate(m_bucket, m_dec_capacity + 2);
         }
 
         template <class KeyTy>
@@ -201,14 +201,14 @@ namespace jvn
 
         bucket_type* m_bucket;
         bucket_type* m_bucket_end;
-        size_type m_capacity, m_size;
+        size_type m_dec_capacity, m_size;
         // The number of elements that triggers grow()
         size_type m_max_elems;
 
-        // Since m_capacity is always a power of two it's decremented value is all ones binary.
+        // Since m_dec_capacity is always a power of two - 1, it's  value is all ones binary.
         // It can be used for fast trimming of the top bits of the hash, since % is a slow operation.
         template <class KeyTy>
-        inline size_type hashAndTrim(KeyTy&& key) const noexcept { return m_hasher(std::forward<KeyTy>(key)) & (m_capacity - 1); }
+        inline size_type hashAndTrim(KeyTy&& key) const noexcept { return m_hasher(std::forward<KeyTy>(key)) & m_dec_capacity; }
 
         inline bucket_type* advanceIter(bucket_type* iter) const noexcept {
             if (JVN_UNLIKELY(++iter == m_bucket_end))
@@ -237,13 +237,13 @@ namespace jvn
 
         // TODO: Make exception safe
         void grow() {
-            size_type prev_capacity = m_capacity;
+            size_type prev_dec_capacity = m_dec_capacity;
             bucket_type* prev_bucket = m_bucket,
                     *prev_bucket_end = m_bucket_end;
 
             // Grow the bucket
-            m_capacity *= GROWTH_FACTOR;
-            m_max_elems = size_type(float(m_capacity) * LOAD_FACTOR);
+            m_dec_capacity = (m_dec_capacity + 1) * GROWTH_FACTOR - 1;
+            m_max_elems = size_type(float(m_dec_capacity + 1) * LOAD_FACTOR);
             m_size = 0;
             initilizeBucket();
 
@@ -252,19 +252,19 @@ namespace jvn
                 if (iter->id != uint8_t(-1))
                     insert(std::move(iter->key_value_pair));
 
-            m_allocator->get().deallocate(prev_bucket, prev_capacity + 1);
+            m_allocator->get().deallocate(prev_bucket, prev_dec_capacity + 2);
         }
 
 
         void initilizeBucket() {
             // +1 is for the differantiation of the end() iterator
-            m_bucket = m_allocator->get().allocate(m_capacity + 1);
-            m_bucket_end = m_bucket + m_capacity;
+            m_bucket = m_allocator->get().allocate(m_dec_capacity + 2);
+            m_bucket_end = m_bucket + m_dec_capacity + 1;
             for (bucket_type* iter = m_bucket; iter != m_bucket_end; ++iter)
                 iter->id = uint8_t(-1);
                 
             //Element at the end must have a non -1u info value
-            m_bucket[m_capacity].id = uint8_t(0);
+            m_bucket_end->id = uint8_t(0);
         }
 
         // Returns the first equal or bigger power of two. The return value is always greater than 1.
