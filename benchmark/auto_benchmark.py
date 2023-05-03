@@ -87,7 +87,7 @@ def process_data(data):
     processed_data = {operation_type: defaultdict(list) for operation_type in OPERATIONS}
     for data_row in data:
         map_name, key_type, value_type = data_row["map"], data_row["key"], data_row["value"]
-        identifier = ','.join((map_name, key_type, value_type))
+        identifier = f"{map_name}<{key_type},{value_type}>"
 
         data_size = data_row["data-set"]
         for operation_type in OPERATIONS:
@@ -117,7 +117,7 @@ RESULTS_DIR = "results\\"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Automate test generation and benchmarking for unordered_map's")
-    parser.add_argument("output_file", type=str, help="Output JSON filename")
+    parser.add_argument("--output-file", default="results\\result.json", type=str, help="Output JSON filename")
     args = parser.parse_args()
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
@@ -132,5 +132,5 @@ if __name__ == "__main__":
 
     processed_data = process_data(data)
     
-    result_data_path = os.path.join(output_path, args.output_file)
+    result_data_path = os.path.join(dir_path, args.output_file)
     write_data(processed_data, result_data_path)
