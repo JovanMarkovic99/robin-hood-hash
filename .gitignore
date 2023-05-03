@@ -18,7 +18,8 @@ env/
 *.exe
 
 # Ignore benchmark data
-benchmark/datasets/
-benchmark/results/
+benchmark/datasets/*
+benchmark/results/*
 
+!benchmark/results/*.png
 !*.gitkeep
