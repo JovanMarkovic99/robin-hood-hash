@@ -27,7 +27,6 @@ def plot_graphs(data):
 
         for map_type, data_points in map_data.items():
             x, y = [x for x, y in data_points], [y for x, y in data_points]
-            print(x, y)
             plt.plot(x, y, label=map_type)
 
         plt.title(operation_type)

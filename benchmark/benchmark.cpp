@@ -126,7 +126,8 @@ std::tuple<ClkNano, ClkNano, ClkNano> calcStats(const std::array<ClkNano, NUM_IT
 std::tuple<ClkNano, ClkNano, ClkNano>  measure(const std::vector<KeyValueType>& data_vec, 
                                     std::function<ClkNano(const std::vector<KeyValueType>&)> measuring_func,
                                     std::string function_name) {
-    std::cout << "Benchmarking " << function_name << "..." << std::endl;
+    std::cout << "Benchmarking " << function_name << "...";
+    std::cout.flush();
     std::cout.setstate(std::ios_base::failbit);
 
     std::array<ClkNano, NUM_ITERATIONS> measurements;
