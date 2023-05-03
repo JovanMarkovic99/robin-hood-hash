@@ -126,16 +126,13 @@ std::tuple<ClkNano, ClkNano, ClkNano> calcStats(const std::array<ClkNano, NUM_IT
 std::tuple<ClkNano, ClkNano, ClkNano>  measure(const std::vector<KeyValueType>& data_vec, 
                                     std::function<ClkNano(const std::vector<KeyValueType>&)> measuring_func,
                                     std::string function_name) {
-    std::cout << "Benchmarking " << function_name << "...";
-    std::cout.flush();
-    std::cout.setstate(std::ios_base::failbit);
+    std::cout << "Benchmarking " << function_name << "..." << std::endl;
 
     std::array<ClkNano, NUM_ITERATIONS> measurements;
     for (size_t i = 0; i < NUM_ITERATIONS; ++i) {
         measurements[i] = measuring_func(data_vec);
     }
 
-    std::cout.clear();
     return calcStats(measurements);
 }
 
@@ -212,6 +209,8 @@ int main(int argc, char* argv[]) {
 
     std::ofstream output_file;
     if (argc > 2) {
+        // Close std::cout if writing to a file
+        std::cout.setstate(std::ios_base::failbit);
         output_file.open(argv[2], std::ios::out | std::ios::trunc);
         if (!output_file.is_open()) {
             std::cerr << "Could not create/open file " << argv[2] << '\n';
@@ -221,6 +220,6 @@ int main(int argc, char* argv[]) {
 
     std::cout << "Benchmarking data-set of " << data_vec.size() << " size with " << NUM_ITERATIONS << " iterations\n\n";
     runBenchmark(data_vec, output_file);
-
+    
     return 0;
 }

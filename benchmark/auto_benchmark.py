@@ -39,7 +39,7 @@ def run_benchmarks(benchmark_path, output_path, data_set_paths):
         result_path = os.path.join(output_path, file_name + '.txt')
 
         if FORCE_BENCHMARK or not os.path.exists(result_path):
-            print(f"Running benchmark for data-set {data_set_path} ...")
+            print(f"Running benchmark for data-set {data_set_path}")
             subprocess.run([benchmark_path, data_set_path, result_path])
 
         output_paths.append(result_path)
