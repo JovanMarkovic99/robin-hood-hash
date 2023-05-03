@@ -24,8 +24,7 @@ if __name__ == "__main__":
 
     dir_path = os.path.dirname(os.path.abspath(__file__))
 
-    input_files = [os.join(dir_path, file_path) for file_path in args.input_files]
-    print(input_files)
-    data = generate_data(input_files)
+    args = parser.parse_args()
+    data = generate_data(args.num_pairs)
 
     write_data(data, args.output_file)

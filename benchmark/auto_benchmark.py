@@ -7,10 +7,10 @@ import multiprocessing
 import json
 from collections import defaultdict
 
-def mult_range(start, stop, multiplier):
+def log_range(start, stop, base):
     while start < stop:
         yield start
-        start *= multiplier
+        start *= base
 
 def generate_data_sets(script_path, data_path, data_sizes):
     data_set_paths = []
@@ -123,7 +123,7 @@ if __name__ == "__main__":
     dir_path = os.path.dirname(os.path.abspath(__file__))
 
     script_path, data_path = os.path.join(dir_path, "generate_test_data.py"), os.path.join(dir_path, DATASET_DIR)
-    data_set_paths = generate_data_sets(script_path, data_path, mult_range(10, 10000001, 10))
+    data_set_paths = generate_data_sets(script_path, data_path, log_range(4, 10000000, 2))
 
     benchmark_path, output_path = os.path.join(dir_path, "benchmark.exe"), os.path.join(dir_path, RESULTS_DIR)
     output_paths = run_benchmarks(benchmark_path, output_path, data_set_paths)
