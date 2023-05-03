@@ -17,6 +17,7 @@
 ### Prerequisites
 
 * A C++ compiler that supports C++17 or later.
+* Python 2.7+ with Matplotlib for automated benchmarking and data visualization
 * No external libraries or dependencies are required.
 
 ### Installation
@@ -43,10 +44,25 @@ else
 ```
 ### Benchmarking
 
-The `benchmark` directory contains benchmarking functions that can be used to measure the performance of `jvn::unordered_map`. To run the benchmarks, follow these steps:
+#### Quick Overview
 
-1. Generate a file containing test data. A Python script is provided in the `benchmark` directory to generate test data. Run the script with the following command: `python generate_test_data.py <size> <file>`
-2. Compile and run the benchmark executable. Use the following commands: `g++ benchmark.cpp -o benchmark` to compile and `./benchmark <file>` to run the benchmark, where `<file>` is the name of the file containing the CSV test data.
+The `benchmark` directory contains benchmarking scripts that can be used to measure the performance of `jvn::unordered_map` or other `unordered_map`'s. To run the automated benchmarks, follow these steps:
+
+1. Compile the `benchmark.cpp` file with your preferred C++ compiler and flags, such as: `g++ -O3 benchmark.cpp -o benchmark.`
+2. Run the `auto_benchmark.py` script with the following command: `python auto_benchmark.py [--output-file OUTPUT_FILE]`.<br>
+This script will run a series of benchmarks with varying map sizes and record the execution times in JSON format.<br>
+The optional --output-file argument can be used to specify the output file path (default is `results/results.json`).
+5. Run the `graph_results.py` script with the following command: `python graph_results.py [--input-files INPUT_FILES [INPUT FILES ...]]`.<br>
+This script will read the JSON data files produced by the `auto_benchmark.py` script and plot the execution times using Matplotlib.<br>
+The optional --input-files argument can be used to specify the input files you wish to graph (default is `results/results.json`).
+
+#### Custom Benchmarks
+
+To run custom benchmarks, you can modify the `benchmark.cpp` file to change the map or key/value types, or pass a different test suite as an argument with this command: `benchmark.exe INPUT_FILE OUTPUT_FILE.`<br>
+After compiling, run the modified file using similar commands as above.<br> 
+<br>
+Note that the custom benchmarks may have specific requirements or restrictions, such as the need for a certain C++ version or a certain input type format.<br>
+Please refer to the documentation for more information.
 
 ## Acknowledgements
 
