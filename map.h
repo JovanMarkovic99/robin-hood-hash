@@ -82,7 +82,7 @@ namespace jvn
         unordered_map(const unordered_map& m)
             :M_LOAD_FACTOR(m.M_LOAD_FACTOR),
             M_GROWTH_FACTOR(m.M_GROWTH_FACTOR),
-            m_allocator(m_allocator) {
+            m_allocator(m.m_allocator) {
             m_bucket = m_allocator.allocate(m.m_dec_capacity + 2);
             if (m_bucket == nullptr)
                 throw std::bad_alloc();
@@ -92,7 +92,11 @@ namespace jvn
             m_size = m.m_size;
             m_bucket_end = m_bucket + m_dec_capacity + 2;
 
-            std::memcpy(m_bucket, m.m_bucket, m_bucket_end - m_bucket);
+            for (auto iter = m_bucket, other_iter = m.m_bucket; iter != m_bucket_end; ++iter, ++other_iter) {
+                iter->id = other_iter->id;
+                if (iter->id != uint8_t(-1))
+                    ::new (&(iter->key_value_pair)) m_value_type(other_iter->key_value_pair);
+            }
             m_bucket_end->id = uint8_t(0);
         }
 

@@ -47,6 +47,9 @@ static std::unordered_map<std::type_index, const char*> type_names = {
 // END USER DEFINED ----------------------------------------------------------------------
 
 
+// Shared map for fast copy-constructor creation
+static MapType filled_map;
+
 using KeyValueType = std::pair<KeyType, ValueType>;
 using Clock = std::chrono::high_resolution_clock;
 using ClkNano = std::chrono::nanoseconds;
@@ -54,22 +57,13 @@ using ClkMicro = std::chrono::microseconds;
 using ClkMili = std::chrono::milliseconds;
 using ClkSec = std::chrono::seconds;
 
-MapType getFilledMap(const std::vector<KeyValueType>& data_vec) {
-    MapType map;
-    map.reserve(data_vec.size());
-    for (auto key_val_pair: data_vec)
-        map.insert(key_val_pair);
-
-    return map;
-}
 
 ClkNano timeDifference(std::chrono::time_point<Clock> start, std::chrono::time_point<Clock> stop) {
     return std::chrono::duration_cast<ClkNano>(stop - start);
 }
 
 ClkNano measureErase(const std::vector<KeyValueType>& data_vec) {
-    MapType map2 = getFilledMap(data_vec);
-    MapType map(std::move(map2));
+    MapType map = filled_map;
 
     auto start = Clock::now();
     for (auto [key, value]: data_vec)
@@ -80,7 +74,7 @@ ClkNano measureErase(const std::vector<KeyValueType>& data_vec) {
 }
 
 ClkNano measureFind(const std::vector<KeyValueType>& data_vec) {
-    MapType map = getFilledMap(data_vec);
+    const MapType& map = filled_map;
 
     auto start = Clock::now();
     for (auto [key, value]: data_vec) {
@@ -142,6 +136,11 @@ std::tuple<ClkNano, ClkNano, ClkNano>  measure(const std::vector<KeyValueType>& 
     return calcStats(measurements);
 }
 
+inline void fillMap(MapType& map, const std::vector<KeyValueType>& data_vec) {
+    map.reserve(data_vec.size());
+    for (auto key_val_pair: data_vec)
+        map.insert(key_val_pair);
+}
 
 void printData(ClkNano total_time, ClkNano avrg, ClkNano stddev, size_t num_elements, std::string function_name) {
     std::cout << "Finished benchmarking " << function_name << " after " << std::chrono::duration_cast<ClkMili>(total_time).count() << "ms.\n"
@@ -151,6 +150,8 @@ void printData(ClkNano total_time, ClkNano avrg, ClkNano stddev, size_t num_elem
 }
 
 void runBenchmark(const std::vector<KeyValueType>& data_vec, std::ostream& output) {
+    fillMap(filled_map, data_vec);
+
     auto data_size = data_vec.size();
 
     auto [total_insertion, avrg_insertion, dev_insertion] = measure(data_vec, measureInsertion, "insertions");
