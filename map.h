@@ -4,7 +4,6 @@
 #include "hash.h"
 #include <utility>
 #include <cstring>
-#include <optional>
 
 namespace jvn
 {
@@ -69,26 +68,46 @@ namespace jvn
         friend class Iter;
         using iterator              = Iter;
 
-        unordered_map()
-            :M_LOAD_FACTOR(0.8f),
-            M_GROWTH_FACTOR(2),
-            m_bucket(nullptr),
-            m_bucket_end(nullptr),
-            m_dec_capacity(0),
-            m_size(0),
-            m_max_elems(0)
-        { initilize(16); }
+        unordered_map() { 
+            initilize(16); 
+        }
 
         unordered_map(size_type inital_capacity, float load_factor = 0.8f, size_type growth_factor = 2, allocator_type allocator = allocator_type())
             :M_LOAD_FACTOR(load_factor),
             M_GROWTH_FACTOR(closestPowerOfTwo(growth_factor)),
-            m_allocator(allocator),
-            m_bucket(nullptr),
-            m_bucket_end(nullptr),
-            m_dec_capacity(0),
-            m_size(0),
-            m_max_elems(0)
-        { initilize(closestPowerOfTwo(inital_capacity)); }
+            m_allocator(allocator) { 
+            initilize(closestPowerOfTwo(inital_capacity)); 
+        }
+
+        unordered_map(const unordered_map& m)
+            :M_LOAD_FACTOR(m.M_LOAD_FACTOR),
+            M_GROWTH_FACTOR(m.M_GROWTH_FACTOR),
+            m_allocator(m_allocator) {
+            m_bucket = m_allocator.allocate(m.m_dec_capacity + 2);
+            if (m_bucket == nullptr)
+                throw std::bad_alloc();
+
+            m_dec_capacity = m.m_dec_capacity;
+            m_max_elems = m.m_max_elems;
+            m_size = m.m_size;
+            m_bucket_end = m_bucket + m_dec_capacity + 2;
+
+            std::memcpy(m_bucket, m.m_bucket, m_bucket_end - m_bucket);
+            m_bucket_end->id = uint8_t(0);
+        }
+
+        unordered_map(unordered_map&& m)
+            :M_LOAD_FACTOR(m.M_LOAD_FACTOR),
+            M_GROWTH_FACTOR(m.M_GROWTH_FACTOR),
+            m_allocator(std::move(m.m_allocator)),
+            m_bucket(m.m_bucket),
+            m_bucket_end(m.m_bucket_end),
+            m_dec_capacity(m.m_dec_capacity),
+            m_size(m.m_size),
+            m_max_elems(m.m_max_elems){
+            m.m_bucket = nullptr;
+            m.m_bucket_end = nullptr;
+        }
 
         ~unordered_map() {
             for (bucket_type* iter = m_bucket; iter != m_bucket_end; ++iter)
@@ -200,20 +219,20 @@ namespace jvn
         inline iterator end() const noexcept { return iterator(m_bucket_end); }
 
     private:
-        float M_LOAD_FACTOR;
-        size_type M_GROWTH_FACTOR;
+        float M_LOAD_FACTOR         = 0.8f;
+        size_type M_GROWTH_FACTOR   = 2;
 
         allocator_type m_allocator;
         hasher m_hasher;
         key_equal m_key_equal;
 
-        bucket_type* m_bucket;
-        bucket_type* m_bucket_end;
+        bucket_type* m_bucket       = nullptr;
+        bucket_type* m_bucket_end   = nullptr;
 
-        size_type m_dec_capacity;
-        size_type m_size;
+        size_type m_dec_capacity    = 0;
+        size_type m_size            = 0;
         // The number of elements that triggers growth
-        size_type m_max_elems;
+        size_type m_max_elems       = 0;
 
         // Re-insert swapped rich element
         inline void insertFrom(bucket_type* iter, uint8_t id, m_value_type&& key_value_pair) {
@@ -281,7 +300,7 @@ namespace jvn
 
         // Returns the wanted capacity factoring for M_LOAD_FACTOR
         inline size_type loadedCapacity(size_type capacity) noexcept {
-            return std::ceil(float(capacity) / M_LOAD_FACTOR);
+            return size_type(std::ceil(float(capacity) / M_LOAD_FACTOR));
         }
 
         // Returns the first equal or bigger power of two. The return value is always greater than 1

@@ -54,14 +54,22 @@ using ClkMicro = std::chrono::microseconds;
 using ClkMili = std::chrono::milliseconds;
 using ClkSec = std::chrono::seconds;
 
+MapType getFilledMap(const std::vector<KeyValueType>& data_vec) {
+    MapType map;
+    map.reserve(data_vec.size());
+    for (auto key_val_pair: data_vec)
+        map.insert(key_val_pair);
+
+    return map;
+}
+
 ClkNano timeDifference(std::chrono::time_point<Clock> start, std::chrono::time_point<Clock> stop) {
     return std::chrono::duration_cast<ClkNano>(stop - start);
 }
 
 ClkNano measureErase(const std::vector<KeyValueType>& data_vec) {
-    MapType map;
-    for (auto key_value: data_vec)
-        map.insert(key_value);
+    MapType map2 = getFilledMap(data_vec);
+    MapType map(std::move(map2));
 
     auto start = Clock::now();
     for (auto [key, value]: data_vec)
@@ -72,9 +80,7 @@ ClkNano measureErase(const std::vector<KeyValueType>& data_vec) {
 }
 
 ClkNano measureFind(const std::vector<KeyValueType>& data_vec) {
-    MapType map;
-    for (auto key_value: data_vec)
-        map.insert(key_value);
+    MapType map = getFilledMap(data_vec);
 
     auto start = Clock::now();
     for (auto [key, value]: data_vec) {
