@@ -70,29 +70,38 @@ namespace jvn
         using iterator              = Iter;
 
         unordered_map()
-            :LOAD_FACTOR(0.8f),
-            GROWTH_FACTOR(2),
-            m_allocator(std::nullopt),
-            m_dec_capacity(64 - 1),
+            :M_LOAD_FACTOR(0.8f),
+            M_GROWTH_FACTOR(2),
+            m_bucket(nullptr),
+            m_bucket_end(nullptr),
+            m_dec_capacity(0),
             m_size(0),
-            m_max_elems(size_type(float(m_dec_capacity + 1) * LOAD_FACTOR))
-        { initilizeBucket(); }
+            m_max_elems(0)
+        { initilize(16); }
 
-        unordered_map(allocator_type& allocator, size_type inital_capacity = 64, float load_factor = 0.8f, size_type growth_factor = 2)
-            :LOAD_FACTOR(load_factor),
-            GROWTH_FACTOR(closestPowerOfTwo(growth_factor)),
-            m_allocator(std::ref(allocator)),
-            m_dec_capacity(closestPowerOfTwo(inital_capacity) - 1),
+        unordered_map(size_type inital_capacity, float load_factor = 0.8f, size_type growth_factor = 2, allocator_type allocator = allocator_type())
+            :M_LOAD_FACTOR(load_factor),
+            M_GROWTH_FACTOR(closestPowerOfTwo(growth_factor)),
+            m_allocator(allocator),
+            m_bucket(nullptr),
+            m_bucket_end(nullptr),
+            m_dec_capacity(0),
             m_size(0),
-            m_max_elems(size_type(float(m_dec_capacity + 1) * LOAD_FACTOR))
-        { initilizeBucket(); }
+            m_max_elems(0)
+        { initilize(closestPowerOfTwo(inital_capacity)); }
 
         ~unordered_map() {
             for (bucket_type* iter = m_bucket; iter != m_bucket_end; ++iter)
                 if (iter->id != uint8_t(-1))
                     iter->key_value_pair.~m_value_type();
 
-            m_allocator->get().deallocate(m_bucket, m_dec_capacity + 2);
+            m_allocator.deallocate(m_bucket, m_dec_capacity + 2);
+        }
+
+        void reserve(size_type size) {
+            size = loadedCapacity(size);
+            if (size > m_dec_capacity)
+                growTo(closestPowerOfTwo(size));
         }
 
         template <class KeyTy>
@@ -108,7 +117,7 @@ namespace jvn
         template <class ValTy = m_value_type>
         std::pair<iterator, bool> insert(ValTy&& key_value_pair) {
             if (JVN_UNLIKELY(m_size == m_max_elems))
-                grow();
+                growTo((m_dec_capacity + 1) * M_GROWTH_FACTOR);
 
             uint8_t id = 0;
             bucket_type* iter = m_bucket + hashAndTrim(key_value_pair.first);
@@ -191,31 +200,20 @@ namespace jvn
         inline iterator end() const noexcept { return iterator(m_bucket_end); }
 
     private:
-        float LOAD_FACTOR;
-        size_type GROWTH_FACTOR;
+        float M_LOAD_FACTOR;
+        size_type M_GROWTH_FACTOR;
 
-        // TODO: Change to pointer ownership
-        std::optional<std::reference_wrapper<allocator_type>> m_allocator;
+        allocator_type m_allocator;
         hasher m_hasher;
         key_equal m_key_equal;
 
         bucket_type* m_bucket;
         bucket_type* m_bucket_end;
-        size_type m_dec_capacity, m_size;
-        // The number of elements that triggers grow()
+
+        size_type m_dec_capacity;
+        size_type m_size;
+        // The number of elements that triggers growth
         size_type m_max_elems;
-
-        // Since m_dec_capacity is always a power of two - 1, it's  value is all ones binary.
-        // It can be used for fast trimming of the top bits of the hash, since % is a slow operation.
-        template <class KeyTy>
-        inline size_type hashAndTrim(KeyTy&& key) const noexcept { return m_hasher(std::forward<KeyTy>(key)) & m_dec_capacity; }
-
-        inline bucket_type* advanceIter(bucket_type* iter) const noexcept {
-            if (JVN_UNLIKELY(++iter == m_bucket_end))
-                    return m_bucket;
-
-            return iter;
-        }
 
         // Re-insert swapped rich element
         inline void insertFrom(bucket_type* iter, uint8_t id, m_value_type&& key_value_pair) {
@@ -235,31 +233,45 @@ namespace jvn
             ::new (&(iter->key_value_pair)) m_value_type(std::move(key_value_pair));
         }
 
-        // TODO: Make exception safe
-        void grow() {
-            size_type prev_dec_capacity = m_dec_capacity;
+        // Since m_dec_capacity is always a power of two - 1, it's  value is all ones binary
+        // It can be used for fast trimming of the top bits of the hash, since % is a slow operation
+        template <class KeyTy>
+        inline size_type hashAndTrim(KeyTy&& key) const noexcept { return m_hasher(std::forward<KeyTy>(key)) & m_dec_capacity; }
+
+        inline bucket_type* advanceIter(bucket_type* iter) const noexcept {
+            if (JVN_UNLIKELY(++iter == m_bucket_end))
+                    return m_bucket;
+
+            return iter;
+        }
+
+        void growTo(size_t new_capacity) {
             bucket_type* prev_bucket = m_bucket,
                     *prev_bucket_end = m_bucket_end;
 
-            // Grow the bucket
-            m_dec_capacity = (m_dec_capacity + 1) * GROWTH_FACTOR - 1;
-            m_max_elems = size_type(float(m_dec_capacity + 1) * LOAD_FACTOR);
-            m_size = 0;
-            initilizeBucket();
+            initilize(new_capacity);
 
-            // Rehash and insert
+            // Re-insert
             for (auto iter = prev_bucket; iter != prev_bucket_end; ++iter)
                 if (iter->id != uint8_t(-1))
                     insert(std::move(iter->key_value_pair));
 
-            m_allocator->get().deallocate(prev_bucket, prev_dec_capacity + 2);
+            m_allocator.deallocate(prev_bucket, size_type(prev_bucket_end - prev_bucket + 1));
         }
 
-
-        void initilizeBucket() {
+        // Initilizes the map with a certain size. Map is unchanged on bad_alloc()
+        void initilize(size_type capacity) {
             // +1 is for the differantiation of the end() iterator
-            m_bucket = m_allocator->get().allocate(m_dec_capacity + 2);
-            m_bucket_end = m_bucket + m_dec_capacity + 1;
+            bucket_type* new_bucket = m_allocator.allocate(capacity + 1);
+            if (new_bucket == nullptr)
+                throw new std::bad_alloc();
+
+            m_dec_capacity = capacity - 1;
+            m_max_elems = size_type(float(capacity) * M_LOAD_FACTOR);
+            m_size = 0;
+
+            m_bucket = new_bucket;
+            m_bucket_end = m_bucket + capacity;
             for (bucket_type* iter = m_bucket; iter != m_bucket_end; ++iter)
                 iter->id = uint8_t(-1);
                 
@@ -267,7 +279,12 @@ namespace jvn
             m_bucket_end->id = uint8_t(0);
         }
 
-        // Returns the first equal or bigger power of two. The return value is always greater than 1.
+        // Returns the wanted capacity factoring for M_LOAD_FACTOR
+        inline size_type loadedCapacity(size_type capacity) noexcept {
+            return std::ceil(float(capacity) / M_LOAD_FACTOR);
+        }
+
+        // Returns the first equal or bigger power of two. The return value is always greater than 1
         static size_type closestPowerOfTwo(size_type num) noexcept {
             if (num <= 2)
                 return 2u;
