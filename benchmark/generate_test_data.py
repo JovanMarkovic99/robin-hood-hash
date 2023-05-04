@@ -1,11 +1,10 @@
 import os
 import argparse
 import random
-from collections import defaultdict
 
 def generate_data(num_pairs):
-    keys = [random.randint(0, 1000000) for _ in range(num_pairs)]
-    values = [random.randint(0, 1000000) for _ in range(num_pairs)]
+    keys = random.sample(range(0, 100000000), num_pairs)
+    values = random.sample(range(0, 100000000), num_pairs)
     return zip(keys, values)
 
 def write_data(data, filename):
