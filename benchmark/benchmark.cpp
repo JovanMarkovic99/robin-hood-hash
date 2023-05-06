@@ -16,7 +16,7 @@
 // USER DEFINED --------------------------------------------------------------------------
 
 
-const size_t NUM_ITERATIONS = 100;
+const size_t NUM_ITERATIONS = 1000;
 
 using KeyType = int;
 using ValueType = int;
@@ -67,7 +67,7 @@ ClkNano measureErase(const std::vector<KeyValueType>& data_vec) {
 
     auto start = Clock::now();
     for (auto [key, value]: data_vec)
-        map.erase(key);
+        volatile auto deleted = map.erase(key);
     auto stop = Clock::now();
 
     return timeDifference(start, stop);
@@ -77,11 +77,8 @@ ClkNano measureFind(const std::vector<KeyValueType>& data_vec) {
     const MapType& map = filled_map;
 
     auto start = Clock::now();
-    for (auto [key, value]: data_vec) {
-        auto iter = map.find(key);
-        if (iter == map.end())
-            std::cerr << "ERROR! Key not found in map!\n";
-    }
+    for (auto [key, value]: data_vec)
+        volatile auto iter = map.find(key);
     auto stop = Clock::now();
 
     return timeDifference(start, stop);
@@ -92,7 +89,7 @@ ClkNano measureInsertion(const std::vector<KeyValueType>& data_vec) {
 
     auto start = Clock::now();
     for (auto key_value: data_vec)
-        map.insert(key_value);
+        volatile auto iter = map.insert(key_value);
     auto stop = Clock::now();
 
     return timeDifference(start, stop);
