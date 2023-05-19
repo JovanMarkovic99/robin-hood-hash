@@ -4,9 +4,9 @@
 `jvn::unordered_map` is a C++ library that provides a fast and efficient hash table implementation based on the Robin Hood Hashing algorithm. It is designed to be highly performant while minimizing memory usage, making it an ideal choice for applications that require fast lookups and insertions.
 <br>
 <div style="display:flex; justify-content:space-between;">
-    <img src="/benchmark/results/figure_find.png" alt="Performance graph of insert" style="width:33%;">
-    <img src="/benchmark/results/figure_insert.png" alt="Performance graph of find" style="width:33%;">
-    <img src="/benchmark/results/figure_erase.png" alt="Performance graph of erase" style="width:33%;">
+    <img src="/benchmark/results/figure_find.png" alt="Performance graph of insert" style="width:32%;">
+    <img src="/benchmark/results/figure_insert.png" alt="Performance graph of find" style="width:32%;">
+    <img src="/benchmark/results/figure_erase.png" alt="Performance graph of erase" style="width:32%;">
 </div>
 
 ## Features
