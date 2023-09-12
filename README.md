@@ -11,10 +11,10 @@
 
 ## Features
 
-* Robin Hood Hashing algorithm for high-performance hash table operations.
-* Flat memory layout that efficiently utilizes memory by packing structs containing a key-value pair and hash distance.
-* Size of the hash table is a power of two for fast hash trimming.
-* Optimized code that uses compiler-specific commands to denote unlikely branches.
+* Robin Hood Hashing algorithm for performant, cache-friendly hash table operations, even with a high load factor.
+* Flat memory layout that efficiently utilizes memory by tigthly packing key-value pairs with a hash distance byte.
+* Size of the hash table is always a power of two for fast hash trimming.
+* Micro-optimized code using platform/compiler-specific features.
 * Fixed-size memory pool `jvn::AlternatingFixedMemoryAllocator` for quick allocation.
 * Benchmarking suite for automated testing and visualization.
 
